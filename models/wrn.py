@@ -57,6 +57,8 @@ class NetworkBlock(nn.Module):
 class WideResNet(nn.Module):
     def __init__(self, depth, num_classes=10, widen_factor=1, dropRate=0.0):
         super(WideResNet, self).__init__()
+        self.num_classes = num_classes
+
         nChannels = [16, 16 * widen_factor, 32 * widen_factor, 64 * widen_factor]
         assert ((depth - 4) % 6 == 0)
         n = (depth - 4) // 6
@@ -94,4 +96,41 @@ class WideResNet(nn.Module):
         out = self.relu(self.bn1(out))
         out = F.avg_pool2d(out, 8)
         out = out.view(-1, self.nChannels)
-        return self.fc(out), out
+        return self.fc(out)
+
+
+class ProtoWRN(nn.Module):
+    """
+    ProtoWRN
+    """
+
+    def __init__(self, backbone, num_classes, protodim):
+        super(ProtoWRN, self).__init__()
+        self.backbone = backbone
+        self.num_classes = num_classes
+        self.protodim = protodim
+
+        assert backbone.num_classes == protodim
+
+        self.prototypes = torch.nn.Parameter(
+            data = torch.zeros((num_classes, protodim)).uniform_(-2, 2),
+            requires_grad = False
+        )
+
+    def forward(self, x, y):
+        batch_size = x.shape[0]
+
+        # Feature embedding
+        z_batch = self.backbone(x)
+        
+        # Determine loss for z
+        loss = torch.zeros(1).cuda()
+        classification_scores = torch.zeros((batch_size, self.num_classes)).cuda()
+        for i, (z, y) in enumerate(zip(z_batch, y)):
+            dists_to_prototypes = torch.sum((self.prototypes - z) ** 2, dim=1)
+            # loss += (-1.0 / float(self.protodim) * torch.sqrt(torch.sum(dists_to_prototypes))) + (torch.sqrt(dists_to_prototypes[y]) * 2)
+            loss += torch.sqrt(dists_to_prototypes[y])
+
+            classification_scores[i] = 1 / (dists_to_prototypes + 1e-10)
+        
+        return loss, z_batch, classification_scores
