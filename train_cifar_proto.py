@@ -132,7 +132,7 @@ def main():
 
         begin_epoch = time.time()
 
-        train( net, state, train_loader_in, optimizer, lr_scheduler)
+        train(net, state, train_loader_in, optimizer, lr_scheduler)
         test(net, state, test_loader)
 
         # Save model
@@ -184,7 +184,7 @@ def train(net, state, train_loader_in, optimizer, lr_scheduler):
         # forward
         loss, z_batch, _ = net(data, targets)
 
-        print(loss, z_batch)
+        # print(loss, z_batch)
 
         # backward
         lr_scheduler.step()

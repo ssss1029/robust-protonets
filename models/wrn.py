@@ -113,7 +113,7 @@ class ProtoWRN(nn.Module):
         assert backbone.num_classes == protodim
 
         self.prototypes = torch.nn.Parameter(
-            data = torch.zeros((num_classes, protodim)).uniform_(-2, 2),
+            data = torch.zeros((num_classes, protodim)).uniform_(-4, 4),
             requires_grad = False
         )
 
