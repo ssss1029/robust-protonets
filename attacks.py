@@ -119,7 +119,7 @@ class PGD_l2_proto(nn.Module):
         for i in range(self.num_steps):
 
             with torch.enable_grad():
-                loss, _, _ = model(adv_bx)
+                loss, _, _ = model(adv_bx, by)
 
             grad = normalize_l2(torch.autograd.grad(loss, adv_bx, only_inputs=True)[0])
             adv_bx = adv_bx + self.step_size * grad
@@ -134,9 +134,8 @@ class PGD_proto(nn.Module):
         self.epsilon = epsilon
         self.num_steps = num_steps
         self.step_size = step_size
-        self.attack_rotations = attack_rotations
 
-    def forward(self, model, bx, by, by_prime, curr_batch_size):
+    def forward(self, model, bx, by):
         """
         :param model: the classifier's forward method
         :param bx: batch of images
@@ -150,7 +149,7 @@ class PGD_proto(nn.Module):
             adv_bx.requires_grad_()
 
             with torch.enable_grad():
-                loss, _, _ = model(adv_bx)
+                loss, _, _ = model(adv_bx, by)
             
             grad = torch.autograd.grad(loss, adv_bx, only_inputs=True)[0]
             adv_bx = adv_bx.detach() + self.step_size * torch.sign(grad.detach())

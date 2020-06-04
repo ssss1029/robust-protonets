@@ -124,6 +124,9 @@ def main():
 
         print('Beginning Training\n')
 
+    with open(os.path.join(args.save, "training_log.csv"), 'w') as f:
+        f.write()
+
     # Main loop
     for epoch in range(0, args.epochs):
         state['epoch'] = epoch

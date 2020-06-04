@@ -86,7 +86,7 @@ def main():
 
     test_loader = torch.utils.data.DataLoader(
         test_data,
-        batch_size=args.batch_size,
+        batch_size=args.test_bs,
         shuffle=False,
         num_workers=args.prefetch,
         pin_memory=True
@@ -135,6 +135,11 @@ def main():
         train(net, state, train_loader_in, optimizer, lr_scheduler)
         test(net, state, test_loader)
 
+        if epoch > 60:
+            net.pin_prototypes(pin=True)
+        else:
+            net.pin_prototypes(pin=False)
+
         # Save model
         torch.save(
             net.state_dict(),
@@ -178,13 +183,13 @@ def main():
 def train(net, state, train_loader_in, optimizer, lr_scheduler):
     net.train()  # enter train mode
     loss_avg = 0.0
-    for data, targets in tqdm(train_loader_in):
+    for i, (data, targets) in enumerate(tqdm(train_loader_in)):
         data, targets = data.cuda(), targets.cuda()
 
         # forward
-        loss, z_batch, _ = net(data, targets)
+        loss, z_batch, _ = net(data, targets, print_stats=i % 100 == 0)
 
-        # print(loss, z_batch)
+        # print(loss)
 
         # backward
         lr_scheduler.step()

@@ -113,11 +113,27 @@ class ProtoWRN(nn.Module):
         assert backbone.num_classes == protodim
 
         self.prototypes = torch.nn.Parameter(
-            data = torch.zeros((num_classes, protodim)).uniform_(-4, 4),
-            requires_grad = False
+            data = torch.zeros((num_classes, protodim)).uniform_(-10, 10),
+            requires_grad = True
         )
+    
+    def pin_prototypes(self, pin=False):
+        self.prototypes.requires_grad = not pin
 
-    def forward(self, x, y):
+    def forward(self, x, y, print_stats=False):
+        if self.prototypes.requires_grad == True:
+            return self.forward_2(x, y, print_stats=print_stats)
+        else:
+            return self.forward_1(x, y, print_stats=print_stats)
+
+    def forward_1(self, x, y, print_stats=False):
+        """
+        Using L2 metrics
+        """
+        
+        if print_stats:
+            print(self.prototypes[:4, :5])
+
         batch_size = x.shape[0]
 
         # Feature embedding
@@ -126,11 +142,55 @@ class ProtoWRN(nn.Module):
         # Determine loss for z
         loss = torch.zeros(1).cuda()
         classification_scores = torch.zeros((batch_size, self.num_classes)).cuda()
+        losses_prototypes = 0
+        losses_examples = 0
         for i, (z, y) in enumerate(zip(z_batch, y)):
             dists_to_prototypes = torch.sum((self.prototypes - z) ** 2, dim=1)
-            # loss += (-1.0 / float(self.protodim) * torch.sqrt(torch.sum(dists_to_prototypes))) + (torch.sqrt(dists_to_prototypes[y]) * 2)
+
+            # loss_prototypes = -0.1 * (torch.sum(torch.sqrt(dists_to_prototypes[:y])) + torch.sum(torch.sqrt(dists_to_prototypes[y+1:])))
+            # loss_example = torch.sqrt(dists_to_prototypes[y]) * 2.0
+            # losses_prototypes += loss_prototypes.item()
+            # losses_examples += loss_example.item()
+            # loss += loss_prototypes + loss_example
+            
             loss += torch.sqrt(dists_to_prototypes[y])
 
-            classification_scores[i] = 1 / (dists_to_prototypes + 1e-10)
+            classification_scores[i] = 1 / (dists_to_prototypes + 1e-10)        
+
         
+        if print_stats:
+            # print(losses_prototypes / batch_size)
+            # print(losses_examples / batch_size)
+            print(loss / batch_size)
+            pass
+
         return loss, z_batch, classification_scores
+
+    def forward_2(self, X, targets, print_stats=False):
+        """
+        Using softmax loss with L2 logits as in Max-Mahalanobis Linear Discriminant Analysis Networks
+        """
+        
+        if print_stats:
+            print(self.prototypes[:4, :5])
+
+        batch_size = X.shape[0]
+
+        # Feature embedding
+        z_batch = self.backbone(X)
+        
+        # Determine loss for z
+        classification_scores = torch.zeros((batch_size, self.num_classes)).cuda()
+        logits = torch.zeros((batch_size, self.num_classes)).cuda()
+        for i, (z, _) in enumerate(zip(z_batch, targets)):
+            dists_to_prototypes = torch.sum((self.prototypes - z) ** 2, dim=1)
+            classification_scores[i] = 1 / (dists_to_prototypes + 1e-10)
+            logits[i] = -1.0 * dists_to_prototypes
+        
+        loss = F.cross_entropy(logits, targets)
+
+        if print_stats:
+            print(loss)
+
+        return loss, z_batch, classification_scores
+
