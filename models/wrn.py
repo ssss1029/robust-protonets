@@ -194,3 +194,14 @@ class ProtoWRN(nn.Module):
 
         return loss, z_batch, classification_scores
 
+    def get_ood_scores(self, X, targets, print_stats=False):
+        
+        z_batch = self.backbone(X)
+
+        ood_scores = []
+        for i, z in enumerate(z_batch):
+            dists_to_prototypes = torch.sum((self.prototypes - z) ** 2, dim=1)
+            ood_score = -1.0 * torch.min(dists_to_prototypes)
+            ood_scores.append(ood_score.item())
+
+        return ood_scores
