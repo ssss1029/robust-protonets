@@ -140,7 +140,7 @@ class ProtoWRN(nn.Module):
         z_batch = self.backbone(x)
         
         # Determine loss for z
-        loss = torch.zeros(1).cuda()
+        loss_L2 = torch.zeros(1).cuda()
         classification_scores = torch.zeros((batch_size, self.num_classes)).cuda()
         losses_prototypes = 0
         losses_examples = 0
@@ -153,15 +153,17 @@ class ProtoWRN(nn.Module):
             # losses_examples += loss_example.item()
             # loss += loss_prototypes + loss_example
             
-            loss += torch.sqrt(dists_to_prototypes[y])
+            loss_L2 += torch.sqrt(dists_to_prototypes[y])
 
             classification_scores[i] = 1 / (dists_to_prototypes + 1e-10)        
 
-        
+        squeeze_loss = self.squeeze_loss(x, z_batch)
+        loss = squeeze_loss + loss_L2
+
         if print_stats:
             # print(losses_prototypes / batch_size)
             # print(losses_examples / batch_size)
-            print(loss / batch_size)
+            print(loss, squeeze_loss, loss_L2)
             pass
 
         return loss, z_batch, classification_scores
@@ -205,3 +207,10 @@ class ProtoWRN(nn.Module):
             ood_scores.append(ood_score.item())
 
         return ood_scores
+
+    def squeeze_loss(self, X, clean_embeddings):
+        
+        noisy_X = X + torch.empty(X.shape).uniform_(-0.1, 0.1).cuda()
+        noisy_embeddings = self.backbone(noisy_X)
+
+        return torch.sqrt(torch.sum((noisy_embeddings - clean_embeddings) ** 2))

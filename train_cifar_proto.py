@@ -124,7 +124,9 @@ def main():
     if not os.path.isdir(args.save):
         raise Exception('%s is not a dir' % args.save)
 
-        print('Beginning Training\n')
+    print('Beginning Training\n')
+    with open(os.path.join(args.save, "training_log.csv"), 'w') as f:
+        f.write("epoch,train_loss,test_loss,test_accuracy\n")
 
     # Main loop
     for epoch in range(0, args.epochs):
@@ -132,13 +134,13 @@ def main():
 
         begin_epoch = time.time()
 
-        train(net, state, train_loader_in, optimizer, lr_scheduler)
-        test(net, state, test_loader)
-
         if epoch > 60:
             net.pin_prototypes(pin=True)
         else:
             net.pin_prototypes(pin=False)
+
+        train(net, state, train_loader_in, optimizer, lr_scheduler)
+        test(net, state, test_loader)
 
         # Save model
         torch.save(
@@ -178,6 +180,9 @@ def main():
             state['test_loss'],
             100 - 100. * state['test_accuracy'])
         )
+
+        with open(os.path.join(args.save, "training_log.csv"), 'a') as f:
+            f.write(f"{epoch},{state['train_loss']},{state['test_loss']},{state['test_accuracy']}\n")
 
 
 def train(net, state, train_loader_in, optimizer, lr_scheduler):
