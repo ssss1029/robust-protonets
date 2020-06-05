@@ -131,8 +131,8 @@ class ProtoWRN(nn.Module):
         Using L2 metrics
         """
         
-        if print_stats:
-            print(self.prototypes[:4, :5])
+        # if print_stats:
+        #     print(self.prototypes[:4, :5])
 
         batch_size = x.shape[0]
 
@@ -173,8 +173,8 @@ class ProtoWRN(nn.Module):
         Using softmax loss with L2 logits as in Max-Mahalanobis Linear Discriminant Analysis Networks
         """
         
-        if print_stats:
-            print(self.prototypes[:4, :5])
+        # if print_stats:
+        #     print(self.prototypes[:4, :5])
 
         batch_size = X.shape[0]
 
@@ -210,7 +210,10 @@ class ProtoWRN(nn.Module):
 
     def squeeze_loss(self, X, clean_embeddings):
         
-        noisy_X = X + torch.empty(X.shape).uniform_(-0.1, 0.1).cuda()
+        noisy_X = X + torch.empty(X.shape).uniform_(-0.2, 0.2).cuda()
         noisy_embeddings = self.backbone(noisy_X)
 
-        return torch.sqrt(torch.sum((noisy_embeddings - clean_embeddings) ** 2))
+        # import pdb
+        # pdb.set_trace()
+
+        return torch.sum(torch.sqrt(torch.sum((noisy_embeddings - clean_embeddings) ** 2, dim=1))) * 5

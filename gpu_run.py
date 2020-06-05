@@ -20,7 +20,7 @@ class Config:
 
     # Specifies tasks to run. It maps tmux session name to the command to run in that session.
     JOBS = {
-        "baseline_protodim100_prototypes_uniform_10_2stage_V2" : "python3 train_cifar_proto.py --protodim=100 --learning-rate=1e-3 --save=checkpoints/baseline_protodim100_prototypes_uniform_10_2stage_V2"
+        "baseline_protodim100_prototypes_uniform_10_2stage_squeezeloss_V2" : "python3 train_cifar_proto.py --protodim=100 --learning-rate=1e-3 --save=checkpoints/baseline_protodim100_prototypes_uniform_10_2stage_squeezeloss_V2"
     }
 
     # Time to wait between putting jobs on GPUs (in seconds). This is useful because it might take time 
